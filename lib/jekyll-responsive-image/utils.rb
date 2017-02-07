@@ -8,6 +8,21 @@ module Jekyll
         site.config['keep_files'] << keep_dir unless site.config['keep_files'].include?(keep_dir)
       end
 
+      def ensure_output_dir_exists!(path)
+        dir = File.dirname(path)
+
+        unless Dir.exist?(dir)
+          Jekyll.logger.info "Creating output directory #{dir}"
+          FileUtils.mkdir_p(dir)
+        end
+      end
+
+      def format_output_path(format, config, image_path, width, height)
+        params = symbolize_keys(image_hash(config, image_path, width, height))
+
+        Pathname.new(format % params).cleanpath.to_s
+      end
+
       def symbolize_keys(hash)
         result = {}
         hash.each_key do |key|

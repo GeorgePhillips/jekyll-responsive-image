@@ -4,13 +4,33 @@ module Jekyll
       include ResponsiveImage::Utils
 
       def process(image_path, config)
-        absolute_image_path = File.expand_path(image_path.to_s, config[:site_source])
+        if image_path =~ /\A#{URI::regexp(['http', 'https'])}\z/
+            local_path = image_path.sub(/^https?\:\/\//, '')
+            output_path = format_output_path(config['output_path_format'], config, local_path, "external", "external")
+            absolute_image_path = File.expand_path(output_path, config[:site_source])
+
+            if File.file?(absolute_image_path)
+                Jekyll.logger.info "Using cache at #{absolute_image_path}"
+            else
+                Jekyll.logger.info "Downloading #{image_path} to #{output_path}"
+                begin
+                  ensure_output_dir_exists!(absolute_image_path)
+                  Jekyll.logger.info "Opening #{absolute_image_path}"
+                  File.open(absolute_image_path, 'wb') do |fo|
+                    fo.write open(image_path).read
+                  end
+                rescue Exception => e
+                  Jekyll.logger.error "Downloading #{image_path} failed '#{e.message}'"
+                end
+            end
+        else
+          absolute_image_path = File.expand_path(image_path.to_s, config[:site_source])
+        end
 
         raise SyntaxError.new("Invalid image path specified: #{image_path}") unless File.file?(absolute_image_path)
 
         resize_handler = ResizeHandler.new
         img = Magick::Image::read(absolute_image_path).first
-
         {
           original: image_hash(config, image_path, img.columns, img.rows),
           resized: resize_handler.resize_image(img, config),

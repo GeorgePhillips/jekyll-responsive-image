@@ -46,23 +46,8 @@ module Jekyll
         resized
       end
 
-      def format_output_path(format, config, image_path, width, height)
-        params = symbolize_keys(image_hash(config, image_path, width, height))
-
-        Pathname.new(format % params).cleanpath.to_s
-      end
-
       def needs_resizing?(img, width)
         img.columns > width
-      end
-
-      def ensure_output_dir_exists!(path)
-        dir = File.dirname(path)
-
-        unless Dir.exist?(dir)
-          Jekyll.logger.info "Creating output directory #{dir}"
-          FileUtils.mkdir_p(dir)
-        end
       end
     end
   end
