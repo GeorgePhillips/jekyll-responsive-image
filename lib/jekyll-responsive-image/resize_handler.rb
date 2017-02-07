@@ -3,19 +3,22 @@ module Jekyll
     class ResizeHandler
       include ResponsiveImage::Utils
 
-      def resize_image(img, config)
+      def resize_image(image_path, external, img, config)
         resized = []
 
         config['sizes'].each do |size|
           width = size['width']
-          ratio = width.to_f / img.columns.to_f
-          height = (img.rows.to_f * ratio).round
 
-          next unless needs_resizing?(img, width)
+          if external
+              height = "external"
+          else
+              ratio = width.to_f / img.columns.to_f
+              height = (img.rows.to_f * ratio).round
+              next unless needs_resizing?(img, width)
+          end
 
-          image_path = img.filename.force_encoding(Encoding::UTF_8)
-          filepath = format_output_path(config['output_path_format'], config, image_path, width, height)
-          resized.push(image_hash(config, filepath, width, height))
+          filepath = format_output_path(config['output_path_format'], config, image_path, width)
+          resized.push(image_hash(config, filepath, width))
 
           site_source_filepath = File.expand_path(filepath, config[:site_source])
           site_dest_filepath = File.expand_path(filepath, config[:site_dest])
@@ -23,11 +26,16 @@ module Jekyll
           # Don't resize images more than once
           next if File.exist?(site_source_filepath)
 
+          if external and img.nil?
+              img = download_external_image(config, image_path)
+          end
+
           ensure_output_dir_exists!(site_source_filepath)
           ensure_output_dir_exists!(site_dest_filepath)
 
           Jekyll.logger.info "Generating #{site_source_filepath}"
 
+          ratio = width.to_f / img.columns.to_f
           i = img.scale(ratio)
           i.write(site_source_filepath) do |f|
             f.interlace = i.interlace
@@ -41,7 +49,7 @@ module Jekyll
           i.destroy!
         end
 
-        img.destroy!
+        img.destroy! unless img.nil?
 
         resized
       end
