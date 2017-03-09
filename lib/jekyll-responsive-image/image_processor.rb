@@ -8,7 +8,7 @@ module Jekyll
         external = is_external_path?(image_path)
         width = nil
         unless external
-          absolute_image_path = File.expand_path(image_path.to_s, config[:site_source])
+          absolute_image_path = File.expand_path(image_path.to_s.gsub(/^\//, ""), config[:site_source])
           raise SyntaxError.new("Invalid image path specified: #{absolute_image_path}") unless File.file?(absolute_image_path)
           img = Magick::Image::read(absolute_image_path).first
           width = img.columns
